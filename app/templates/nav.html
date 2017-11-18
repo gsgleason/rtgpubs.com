@@ -1,0 +1,20 @@
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+      <span class="navbar-brand">On Giving</span>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item {% if request.path == url_for('index') %}active{% endif %}">
+            <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+          </li>
+          <li class="nav-item {% if request.path == url_for('about') %}active{% endif %}">
+            <a class="nav-link" href="{{ url_for('about') }}">About The Author</a>
+          </li>
+          <li class="nav-item {% if request.path == url_for('blog') %}active{% endif %}">
+            <a class="nav-link" href="{{ url_for('blog') }}">Blog</a>
+          </li>
+        </ul>
+      </div>
+    </nav>

@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block body %}
+{% for item in content %}
+	<div class="container-fluid">
+	<h1>{{ item.title }}</h1>
+	<div>{{ item.content }}</div>
+	</div>
+{% endfor %}
+{% endblock body %}
