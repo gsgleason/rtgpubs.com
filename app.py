@@ -1,9 +1,9 @@
 from flask import Flask, render_template, Markup
 import requests
-from app.config import blogger
+from config import blogger
   
 app = Flask(__name__)
-app.config.from_object('app.config.flask')
+app.config.from_object('config.flask')
 
 @app.route('/')
 def index():
