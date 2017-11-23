@@ -2,4 +2,4 @@ flask
 requests
 Flask-SSLify
 sqlalchemy
-mysql-python
+mysqlclient
