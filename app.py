@@ -74,12 +74,15 @@ def ipn():
 	customer.paypal_transaction_id = paypal_transaction_id
 	customer.payment_status = payment_status
 	customer.session_id = session_id
-	session.commit()
 
 	# send full post back to paypal
-	data = request.form
+	data = {}
 	data['cmd'] = '_notify-validate'
+	for key,val in request.form.items():
+		data[key] = value
 	url = 'https://ipnpb.sandbox.paypal.com/cgi-bin/webscr'
 	r = requests.post(url, data=data)
+	if r.text == 'VERIFIED':
+		session.commit()
 
 	return ""
