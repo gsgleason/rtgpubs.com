@@ -20,7 +20,7 @@ class Customer(Base):
 		return "<Customer(id={}, email='{}', paypal_transaction_id='{}', session_id='{}', payment_status={})>".format(self.id, self.email, self.paypal_transaction_id, self.session_id, self.payment_status)
 
 def initdb():
-	Base.metadata.delete_all(engine)
+	Base.metadata.drop_all(engine)
 	Base.metadata.create_all(engine)
 
 
