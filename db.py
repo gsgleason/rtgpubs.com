@@ -1,5 +1,5 @@
 from config import db
-from sqlalchemy import create_engine, Column, Srring, Integer, Boolean
+from sqlalchemy import create_engine, Column, String, Integer, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 
