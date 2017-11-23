@@ -1,4 +1,4 @@
 flask
 requests
 Flask-SSLify
-
+sqlalchemy
