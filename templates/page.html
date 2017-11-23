@@ -1,12 +1,9 @@
 {% extends 'base.html' %}
 {% block body %}
-<div class="container-fluid">
-{% include "buy.html" %}
-</div>
 {% for item in content %}
 	<div class="container-fluid">
-	<h1>{{ item.title }}</h1>
-	<div>{{ item.content }}</div>
+	<h2>{{ item.title }}</h2>
+	<p>{{ item.content }}</p>
 	</div>
 {% endfor %}
 {% endblock body %}

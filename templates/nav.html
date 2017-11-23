@@ -15,6 +15,9 @@
           <li class="nav-item {% if request.path == url_for('blog') %}active{% endif %}">
             <a class="nav-link" href="{{ url_for('blog') }}">Blog</a>
           </li>
+          <li class="nav-item {% if request.path == url_for('buy') %}active{% endif %}">
+            <a class="nav-link" href="{{ url_for('buy') }}">Buy</a>
+          </li>
         </ul>
       </div>
     </nav>
