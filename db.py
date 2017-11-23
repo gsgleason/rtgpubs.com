@@ -10,7 +10,7 @@ session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=en
 class Customer(Base):
 	__tablename__ = 'customers'
 
-	id = Column(Integer, primay_key=True)
+	id = Column(Integer, primary_key=True)
 	paypal_transaction_id = Column(String)
 	email = Column(String)
 	session_id = Column(String)
