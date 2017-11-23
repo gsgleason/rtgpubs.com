@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Markup, request, session, requests
+from flask import Flask, render_template, Markup, request, session
 from flask_sslify import SSLify
 import requests
 import uuid
