@@ -2,10 +2,10 @@ from flask import Flask, render_template, Markup, request
 from flask_sslify import SSLify
 import requests
 from config import blogger
-sslify = SSLify(app, permanent=True)
   
 app = Flask(__name__)
 app.config.from_object('config.flask')
+sslify = SSLify(app, permanent=True)
 
 @app.route('/')
 def index():
