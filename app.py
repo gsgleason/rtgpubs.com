@@ -79,7 +79,7 @@ def ipn():
 	data = {}
 	data['cmd'] = '_notify-validate'
 	for key,val in request.form.items():
-		data[key] = value
+		data[key] = val
 	url = 'https://ipnpb.sandbox.paypal.com/cgi-bin/webscr'
 	r = requests.post(url, data=data)
 	if r.text == 'VERIFIED':
