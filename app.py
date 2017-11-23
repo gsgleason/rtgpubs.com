@@ -2,8 +2,7 @@ from flask import Flask, render_template, Markup, request
 from flask_sslify import SSLify
 import requests
 from config import blogger
-if 'rtgpubs' in request.host:
-	sslify = SSLify(app, permanent=True)
+sslify = SSLify(app, permanent=True)
   
 app = Flask(__name__)
 app.config.from_object('config.flask')
