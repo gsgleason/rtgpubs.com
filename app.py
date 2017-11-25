@@ -47,7 +47,7 @@ def blog():
 @app.route('/buy')
 def buy():
 	if 'id' not in session:
-		session['id'] = uuid.uuid4()
+		session['id'] = str(uuid.uuid4())
 	customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
 	if customer is None:
 		customer = Customer(session_id=session['id'])
