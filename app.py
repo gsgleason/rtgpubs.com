@@ -3,7 +3,7 @@ from flask_sslify import SSLify
 import requests
 import uuid
 from config import blogger
-from db import Customer, session
+from db import Customer, session as db
 
 app = Flask(__name__)
 app.config.from_object('config.flask')
@@ -48,12 +48,19 @@ def blog():
 def buy():
 	if 'id' not in session:
 		session['id'] = uuid.uuid4()
-	customer = session.query(Customer).filter(Customer.session_id == session['id']).first()
+	customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
 	if customer is None:
 		customer = Customer(session_id=session['id'])
-	session.add(customer)
-	session.commit()
+	db.add(customer)
+	db.commit()
 	return render_template('buy.html')
+
+@app.route('/download')
+def download():
+	# first, see if session id from cookie is there and has been associated with a payment
+	customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
+	if customer and customer.payment_status == 'Completed':
+		return render_template('download.html')
 
 @app.route('/ipn', methods=['POST'])
 def ipn():
@@ -62,14 +69,14 @@ def ipn():
 	payment_status = request.form.get('payment_status')
 	session_id = request.form.get('custom')
 	# first we will search by transaction ID, which would be to update an existing transaction
-	customer = session.query(Customer).filter(Customer.paypal_transaction_id == paypal_transaction_id).first()
+	customer = db.query(Customer).filter(Customer.paypal_transaction_id == paypal_transaction_id).first()
 	# if that's not found, search by session_id, this will work for users who initiated the purchase through the site and have returned
 	if customer is None:
-		customer = session.query(Customer).filter(Customer.session_id == session_id).first()
+		customer = db.query(Customer).filter(Customer.session_id == session_id).first()
 	# if that's not found, create new instance
 	if customer is None:
 		customer = Customer()
-		session.add(customer)
+		db.add(customer)
 	customer.email = email
 	customer.paypal_transaction_id = paypal_transaction_id
 	customer.payment_status = payment_status
@@ -83,6 +90,6 @@ def ipn():
 	url = 'https://ipnpb.sandbox.paypal.com/cgi-bin/webscr'
 	r = requests.post(url, data=data)
 	if r.text == 'VERIFIED':
-		session.commit()
+		db.commit()
 
 	return ""
