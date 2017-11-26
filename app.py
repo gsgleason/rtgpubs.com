@@ -68,7 +68,7 @@ def download():
 				return render_template('download.html')
 			else:
 				# paypal transaction has been created but payment is not complete
-				return render_template('payment_not_complete.html', data=customer)
+				return render_template('payment_not_complete.html')
 		# no session found - need to enter transaction id, email in order to download.
 		return render_template('enter_payment_details.html', data=customer)
 	if request.method == 'POST':
