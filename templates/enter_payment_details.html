@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 {% block body %}
 <div class="container-fluid">
+{% for key, val in data.items() %}
+{{ key }}:{{ val }} < br/>
+{% endfor %}
 <p>If you have already completed your payment, please enter the Paypal transaction details in order to access your download.</p>
 <form method="post">
 	<div class="form-group">
