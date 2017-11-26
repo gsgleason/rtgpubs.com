@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container-fluid">
+<h3>Your payment is not complete.</h3>
+<p>For the following paypal transaction, the payment has not been completed.</p>
+<p>Email: {{ data.paypal_transaction_id }}<br />
+Transaction ID: {{ data.paypal_transaction_id }}<br />
+Payment status: {{ data.payment_status }}</p>
+<p>Please complete the payment and visit this page again.</p>
+</div>
+{% endblock body %}

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Markup, request, session
+from flask import Flask, render_template, Markup, request, session, redirect, abort
 from flask_sslify import SSLify
 import requests
 import uuid
@@ -55,12 +55,33 @@ def buy():
 	db.commit()
 	return render_template('buy.html')
 
-@app.route('/download')
+@app.route('/download', methods=['GET','POST'])
 def download():
-	# first, see if session id from cookie is there and has been associated with a payment
-	customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
-	if customer and customer.payment_status == 'Completed':
-		return render_template('download.html')
+	if 'id' not in session:
+		session['id'] = str(uuid.uuid4())
+	if request.method == 'GET':
+		# first, see if session id from cookie is there and has been associated with a paypal transaction
+		customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
+		if customer and customer.paypal_transaction_id and customer.email:
+			if customer.payment_status == 'Completed':
+				# we've received IPN from paypal notifying that payment is complete for this session
+				return render_template('download.html')
+			else:
+				# paypal transaction has been created but payment is not complete
+				return render_template('payment_not_complete.html', data=customer)
+		# no session found - need to enter transaction id, email in order to download.
+		return render_template('enter_payment_details.html')
+	if request.method == 'POST':
+		email = request.form.get('email')
+		paypal_transaction_id = request.form.get('paypal_transaction_id')
+		customer = db.query(Customer).filter(Customer.email == email, Customer.paypal_transaction_id == paypal_transaction_id).first()
+		if customer:
+			customer.session_id = session['id']
+			db.commit()
+			return redirect('/download', code=302)
+		else:
+			return render_template('customer_not_found.html')
+			
 
 @app.route('/ipn', methods=['POST'])
 def ipn():
@@ -91,5 +112,6 @@ def ipn():
 	r = requests.post(url, data=data)
 	if r.text == 'VERIFIED':
 		db.commit()
-
-	return ""
+		return ""
+	else:
+		abort(404)
