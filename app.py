@@ -4,6 +4,8 @@ import requests
 import uuid
 from config import blogger
 from db import Customer, session as db
+import shlex
+import urllib.parse
 
 app = Flask(__name__)
 app.config.from_object('config.flask')
@@ -62,6 +64,24 @@ def download():
 	if request.method == 'GET':
 		# first, see if session id from cookie is there and has been associated with a paypal transaction
 		customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
+		# first, try PDT
+		if 'tx' in request.args:
+			# perform post for PDT verification
+			paypal_transaction_id = request.args.get('tx')
+			data = {}
+			data['cmd'] = '_notify-synch'
+			data['tx'] = paypal_transaction_id
+			data['at'] = config.paypal.sandbox_pdt_token
+			url = config.paypal.sandbox_api_uri
+			r = requests.post(url, data=data)
+			if r.status_code == 200:
+				response_list = shlex.split(r.text)
+				if response_list[0] == 'SUCCESS':
+					response_data = dict(token.split('=') for token in response_list[1:])
+					customer.payment_status = response_data.get('payment_status')
+					customer.paypal_transaction_id = response_data.get('txn_id')
+					customer.email = urllib.parse.unquote(response_data.get('payer_email'))
+					db.commit()
 		if customer and customer.paypal_transaction_id and customer.email:
 			if customer.payment_status == 'Completed':
 				# we've received IPN from paypal notifying that payment is complete for this session
@@ -108,7 +128,7 @@ def ipn():
 	data['cmd'] = '_notify-validate'
 	for key,val in request.form.items():
 		data[key] = val
-	url = 'https://ipnpb.sandbox.paypal.com/cgi-bin/webscr'
+	url = config.paypal.sandbox_api_uri
 	r = requests.post(url, data=data)
 	if r.text == 'VERIFIED':
 		db.commit()
