@@ -54,7 +54,11 @@ def buy():
 	if customer is None:
 		customer = Customer(session_id=session['id'])
 	db.add(customer)
-	db.commit()
+	try:
+		db.commit()
+	except:
+		db.rollback()
+		db.commit()
 	return render_template('buy.html')
 
 @app.route('/download', methods=['GET','POST'])
