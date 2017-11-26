@@ -55,7 +55,6 @@ def buy():
 		customer = Customer(session_id=session['id'])
 	db.add(customer)
 	db.commit()
-	db.close()
 	return render_template('buy.html')
 
 @app.route('/download', methods=['GET','POST'])
@@ -83,7 +82,6 @@ def download():
 					customer.paypal_transaction_id = response_data.get('txn_id')
 					customer.email = urllib.parse.unquote(response_data.get('payer_email'))
 					db.commit()
-					db.close()
 		if customer and customer.paypal_transaction_id and customer.email:
 			if customer.payment_status == 'Completed':
 				# we've received IPN from paypal notifying that payment is complete for this session
@@ -100,7 +98,6 @@ def download():
 		if customer:
 			customer.session_id = session['id']
 			db.commit()
-			db.close()
 			return redirect('/download', code=302)
 		else:
 			return render_template('customer_not_found.html')
@@ -135,8 +132,6 @@ def ipn():
 	r = requests.post(url, data=data)
 	if r.text == 'VERIFIED':
 		db.commit()
-		db.close()
 		return ""
 	else:
-		db.close()
 		abort(404)
