@@ -2,7 +2,7 @@ from flask import Flask, render_template, Markup, request, session, redirect, ab
 from flask_sslify import SSLify
 import requests
 import uuid
-from config import blogger
+import config
 from db import Customer, session as db
 import shlex
 import urllib.parse
@@ -13,8 +13,8 @@ sslify = SSLify(app, permanent=True)
 
 @app.route('/')
 def index():
-	params = {'key':blogger.api_key}
-	r = requests.get('https://www.googleapis.com/blogger/v3/blogs/{}/posts'.format(blogger.blog_id), params=params)
+	params = {'key':config.blogger.api_key}
+	r = requests.get('https://www.googleapis.com/blogger/v3/blogs/{}/posts'.format(config.blogger.blog_id), params=params)
 	content = []
 	posts = r.json()['items']
 	for post in posts:
@@ -25,8 +25,8 @@ def index():
 
 @app.route('/about')
 def about():
-	params = {'key':blogger.api_key}
-	r = requests.get('https://www.googleapis.com/blogger/v3/blogs/{}/posts'.format(blogger.blog_id), params=params)
+	params = {'key':config.blogger.api_key}
+	r = requests.get('https://www.googleapis.com/blogger/v3/blogs/{}/posts'.format(config.blogger.blog_id), params=params)
 	content = []
 	posts = r.json()['items']
 	for post in posts:
@@ -38,8 +38,8 @@ def about():
 
 @app.route('/blog')
 def blog():
-	params = {'key':blogger.api_key}
-	r = requests.get('https://www.googleapis.com/blogger/v3/blogs/{}/posts'.format(blogger.blog_id), params=params)
+	params = {'key':config.blogger.api_key}
+	r = requests.get('https://www.googleapis.com/blogger/v3/blogs/{}/posts'.format(config.blogger.blog_id), params=params)
 	content = []
 	posts = r.json()['items']
 	for post in posts:
