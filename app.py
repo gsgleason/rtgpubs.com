@@ -116,7 +116,6 @@ def pdt():
 			transaction.paypal_transaction_id = response_data.get('txn_id')
 			transaction.email = urllib.parse.unquote(response_data.get('payer_email'))
 			db.commit()
-			db.expunge(transaction)
 			db.close()
 	return render_template('pdt.html', data=transaction)
 
