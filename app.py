@@ -55,6 +55,7 @@ def buy():
 		customer = Customer(session_id=session['id'])
 	db.add(customer)
 	db.commit()
+	db.close()
 	return render_template('buy.html')
 
 @app.route('/download', methods=['GET','POST'])
@@ -71,8 +72,8 @@ def download():
 			data = {}
 			data['cmd'] = '_notify-synch'
 			data['tx'] = paypal_transaction_id
-			data['at'] = config.paypal.sandbox_pdt_token
-			url = config.paypal.sandbox_api_uri
+			data['at'] = config.paypal.pdt_token
+			url = config.paypal.api_uri
 			r = requests.post(url, data=data)
 			if r.status_code == 200:
 				response_list = shlex.split(r.text)
@@ -82,6 +83,7 @@ def download():
 					customer.paypal_transaction_id = response_data.get('txn_id')
 					customer.email = urllib.parse.unquote(response_data.get('payer_email'))
 					db.commit()
+					db.close()
 		if customer and customer.paypal_transaction_id and customer.email:
 			if customer.payment_status == 'Completed':
 				# we've received IPN from paypal notifying that payment is complete for this session
@@ -98,6 +100,7 @@ def download():
 		if customer:
 			customer.session_id = session['id']
 			db.commit()
+			db.close()
 			return redirect('/download', code=302)
 		else:
 			return render_template('customer_not_found.html')
@@ -128,10 +131,11 @@ def ipn():
 	data['cmd'] = '_notify-validate'
 	for key,val in request.form.items():
 		data[key] = val
-	url = config.paypal.sandbox_api_uri
+	url = config.paypal.api_uri
 	r = requests.post(url, data=data)
 	if r.text == 'VERIFIED':
 		db.commit()
+		db.close()
 		return ""
 	else:
 		abort(404)
