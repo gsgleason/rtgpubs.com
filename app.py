@@ -65,26 +65,6 @@ def download():
 	if request.method == 'GET':
 		# first, see if session id from cookie is there and has been associated with a paypal transaction
 		customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
-		# first, try PDT
-		if 'tx' in request.args:
-			# perform post for PDT verification
-			paypal_transaction_id = request.args.get('tx')
-			data = {}
-			data['cmd'] = '_notify-synch'
-			data['tx'] = paypal_transaction_id
-			data['at'] = config.paypal.pdt_token
-			url = config.paypal.api_uri
-			r = requests.post(url, data=data)
-			if r.status_code == 200:
-				response_list = shlex.split(r.text)
-				if response_list[0] == 'SUCCESS':
-					response_data = dict(token.split('=') for token in response_list[1:])
-					customer.payment_status = response_data.get('payment_status')
-					customer.paypal_transaction_id = response_data.get('txn_id')
-					customer.email = urllib.parse.unquote(response_data.get('payer_email'))
-					db.commit()
-					db.close()
-		customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
 		if customer and customer.paypal_transaction_id and customer.email:
 			if customer.payment_status == 'Completed':
 				# we've received IPN from paypal notifying that payment is complete for this session
@@ -105,7 +85,35 @@ def download():
 			return redirect('/download', code=302)
 		else:
 			return render_template('customer_not_found.html')
-			
+
+@app.route('/pdt')
+def download():
+	if 'id' not in session:
+		session['id'] = str(uuid.uuid4())
+	# first, see if session id from cookie is there and has been associated with a paypal transaction
+	customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
+	if not customer:
+		customer = Customer(session_id = session['id'])
+	# verify transaction with paypal now
+	if 'tx' in request.args:
+		# perform post for PDT verification
+		paypal_transaction_id = request.args.get('tx')
+		data = {}
+		data['cmd'] = '_notify-synch'
+		data['tx'] = paypal_transaction_id
+		data['at'] = config.paypal.pdt_token
+		url = config.paypal.api_uri
+		r = requests.post(url, data=data)
+		if r.status_code == 200:
+			response_list = shlex.split(r.text)
+			if response_list[0] == 'SUCCESS':
+				response_data = dict(token.split('=') for token in response_list[1:])
+				customer.payment_status = response_data.get('payment_status')
+				customer.paypal_transaction_id = response_data.get('txn_id')
+				customer.email = urllib.parse.unquote(response_data.get('payer_email'))
+				db.commit()
+				db.close()
+	return render_template('pdt.html', data=customer)
 
 @app.route('/ipn', methods=['POST'])
 def ipn():
