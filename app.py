@@ -88,36 +88,36 @@ def download():
 
 @app.route('/pdt')
 def pdt():
+	if 'tx' not in request.args:
+		abort(400)
 	if 'id' not in session:
 		session['id'] = str(uuid.uuid4())
-	# verify transaction with paypal now
-	if 'tx' in request.args:
-		# perform post for PDT verification
-		paypal_transaction_id = request.args.get('tx')
-		# first, look for transaction that already matches this paypal transaction ID.  This should only happen if the pdt page is visited twice.
-		transaction = db.query(Transaction).filter(Transaction.paypal_transaction_id == paypal_transaction_id).first()
-		# if that's not there, look for transaction that matches this browser session but has no transaction id
-		if not transaction:
-			transaction = db.query(Transaction).filter(Transaction.session_id == session['id'], Transaction.paypal_transaction_id == None).first()
-		# if there's no record without a transaction id for this browser session, make a new one
-		if not transaction:
-			transaction = Transaction(paypal_transaction_id=paypal_transaction_id, session_id=session['id'])
-			db.add(transaction)
-		data = {}
-		data['cmd'] = '_notify-synch'
-		data['tx'] = paypal_transaction_id
-		data['at'] = config.paypal.pdt_token
-		url = config.paypal.api_uri
-		r = requests.post(url, data=data)
-		if r.status_code == 200:
-			response_list = shlex.split(r.text)
-			if response_list[0] == 'SUCCESS':
-				response_data = dict(token.split('=') for token in response_list[1:])
-				transaction.payment_status = response_data.get('payment_status')
-				transaction.paypal_transaction_id = response_data.get('txn_id')
-				transaction.email = urllib.parse.unquote(response_data.get('payer_email'))
-				db.commit()
-				db.close()
+	paypal_transaction_id = request.args.get('tx')
+	# first, look for transaction that already matches this paypal transaction ID.  This should only happen if the pdt page is visited twice.
+	transaction = db.query(Transaction).filter(Transaction.paypal_transaction_id == paypal_transaction_id).first()
+	# if that's not there, look for transaction that matches this browser session but has no transaction id
+	if not transaction:
+		transaction = db.query(Transaction).filter(Transaction.session_id == session['id'], Transaction.paypal_transaction_id == None).first()
+	# if there's no record without a transaction id for this browser session, make a new one
+	if not transaction:
+		transaction = Transaction(paypal_transaction_id=paypal_transaction_id, session_id=session['id'])
+		db.add(transaction)
+	data = {}
+	data['cmd'] = '_notify-synch'
+	data['tx'] = paypal_transaction_id
+	data['at'] = config.paypal.pdt_token
+	url = config.paypal.api_uri
+	r = requests.post(url, data=data)
+	if r.status_code == 200:
+		response_list = shlex.split(r.text)
+		if response_list[0] == 'SUCCESS':
+			response_data = dict(token.split('=') for token in response_list[1:])
+			transaction.payment_status = response_data.get('payment_status')
+			transaction.paypal_transaction_id = response_data.get('txn_id')
+			transaction.email = urllib.parse.unquote(response_data.get('payer_email'))
+			db.commit()
+			db.expunge(transaction)
+			db.close()
 	return render_template('pdt.html', data=transaction)
 
 @app.route('/ipn', methods=['POST'])
