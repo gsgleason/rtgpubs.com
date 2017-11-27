@@ -94,8 +94,12 @@ def pdt():
 	if 'tx' in request.args:
 		# perform post for PDT verification
 		paypal_transaction_id = request.args.get('tx')
-		# check to see if there is a record with this transaction id already
+		# first, look for transaction that already matches this paypal transaction ID.  This should only happen if the pdt page is visited twice.
 		transaction = db.query(Transaction).filter(Transaction.paypal_transaction_id == paypal_transaction_id).first()
+		# if that's not there, look for transaction that matches this browser session but has no transaction id
+		if not transaction:
+			transaction = db.query(Transaction).filter(Transaction.session_id == session['id'], Transaction.paypal_transaction_id == None).first()
+		# if there's no record without a transaction id for this browser session, make a new one
 		if not transaction:
 			transaction = Transaction(paypal_transaction_id=paypal_transaction_id, session_id=session['id'])
 			db.add(transaction)
@@ -147,4 +151,5 @@ def ipn():
 		db.close()
 		return ""
 	else:
+		db.close()
 		abort(404)
