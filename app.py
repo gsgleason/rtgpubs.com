@@ -3,7 +3,7 @@ from flask_sslify import SSLify
 import requests
 import uuid
 import config
-from db import Customer, session as db
+from db import Transaction, session as db
 import shlex
 import urllib.parse
 
@@ -50,10 +50,10 @@ def blog():
 def buy():
 	if 'id' not in session:
 		session['id'] = str(uuid.uuid4())
-	customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
-	if customer is None:
-		customer = Customer(session_id=session['id'])
-	db.add(customer)
+	transaction = db.query(Transaction).filter(Transaction.session_id == session['id']).first()
+	if transaction is None:
+		transaction = Transaction(session_id=session['id'])
+	db.add(transaction)
 	db.commit()
 	db.close()
 	return render_template('buy.html')
@@ -64,40 +64,41 @@ def download():
 		session['id'] = str(uuid.uuid4())
 	if request.method == 'GET':
 		# first, see if session id from cookie is there and has been associated with a paypal transaction
-		customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
-		if customer and customer.paypal_transaction_id and customer.email:
-			if customer.payment_status == 'Completed':
+		transaction = db.query(Transaction).filter(Transaction.session_id == session['id']).first()
+		if transaction and transaction.paypal_transaction_id and transaction.email:
+			if transaction.payment_status == 'Completed':
 				# we've received IPN from paypal notifying that payment is complete for this session
 				return render_template('download.html')
 			else:
 				# paypal transaction has been created but payment is not complete
 				return render_template('payment_not_complete.html')
 		# no session found - need to enter transaction id, email in order to download.
-		return render_template('enter_payment_details.html', data=customer)
+		return render_template('enter_payment_details.html', data=transaction)
 	if request.method == 'POST':
 		email = request.form.get('email')
 		paypal_transaction_id = request.form.get('paypal_transaction_id')
-		customer = db.query(Customer).filter(Customer.email == email, Customer.paypal_transaction_id == paypal_transaction_id).first()
-		if customer:
-			customer.session_id = session['id']
+		transaction = db.query(Transaction).filter(Transaction.email == email, Transaction.paypal_transaction_id == paypal_transaction_id).first()
+		if transaction:
+			transaction.session_id = session['id']
 			db.commit()
 			db.close()
 			return redirect('/download', code=302)
 		else:
-			return render_template('customer_not_found.html')
+			return render_template('transaction_not_found.html')
 
 @app.route('/pdt')
 def pdt():
 	if 'id' not in session:
 		session['id'] = str(uuid.uuid4())
-	# first, see if session id from cookie is there and has been associated with a paypal transaction
-	customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
-	if not customer:
-		customer = Customer(session_id = session['id'])
 	# verify transaction with paypal now
 	if 'tx' in request.args:
 		# perform post for PDT verification
 		paypal_transaction_id = request.args.get('tx')
+		# check to see if there is a record with this transaction id already
+		transaction = db.query(Transaction).filter(Transaction.paypal_transaction_id == paypal_transaction_id).first()
+		if not transaction:
+			transaction = Transaction(paypal_transaction_id=paypal_transaction_id, session_id=session['id'])
+			db.add(transaction)
 		data = {}
 		data['cmd'] = '_notify-synch'
 		data['tx'] = paypal_transaction_id
@@ -108,12 +109,12 @@ def pdt():
 			response_list = shlex.split(r.text)
 			if response_list[0] == 'SUCCESS':
 				response_data = dict(token.split('=') for token in response_list[1:])
-				customer.payment_status = response_data.get('payment_status')
-				customer.paypal_transaction_id = response_data.get('txn_id')
-				customer.email = urllib.parse.unquote(response_data.get('payer_email'))
+				transaction.payment_status = response_data.get('payment_status')
+				transaction.paypal_transaction_id = response_data.get('txn_id')
+				transaction.email = urllib.parse.unquote(response_data.get('payer_email'))
 				db.commit()
 				db.close()
-	return render_template('pdt.html', data=customer)
+	return render_template('pdt.html', data=transaction)
 
 @app.route('/ipn', methods=['POST'])
 def ipn():
@@ -122,18 +123,18 @@ def ipn():
 	payment_status = request.form.get('payment_status')
 	session_id = request.form.get('custom')
 	# first we will search by transaction ID, which would be to update an existing transaction
-	customer = db.query(Customer).filter(Customer.paypal_transaction_id == paypal_transaction_id).first()
+	transaction = db.query(Transaction).filter(Transaction.paypal_transaction_id == paypal_transaction_id).first()
 	# if that's not found, search by session_id, this will work for users who initiated the purchase through the site and have returned
-	if customer is None:
-		customer = db.query(Customer).filter(Customer.session_id == session_id).first()
+	if transaction is None:
+		transaction = db.query(Transaction).filter(Transaction.session_id == session_id).first()
 	# if that's not found, create new instance
-	if customer is None:
-		customer = Customer()
-		db.add(customer)
-	customer.email = email
-	customer.paypal_transaction_id = paypal_transaction_id
-	customer.payment_status = payment_status
-	customer.session_id = session_id
+	if transaction is None:
+		transaction = Transaction()
+		db.add(transaction)
+	transaction.email = email
+	transaction.paypal_transaction_id = paypal_transaction_id
+	transaction.payment_status = payment_status
+	transaction.session_id = session_id
 	# send full post back to paypal
 	data = {}
 	data['cmd'] = '_notify-validate'
