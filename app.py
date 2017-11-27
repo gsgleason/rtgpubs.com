@@ -84,6 +84,7 @@ def download():
 					customer.email = urllib.parse.unquote(response_data.get('payer_email'))
 					db.commit()
 					db.close()
+		customer = db.query(Customer).filter(Customer.session_id == session['id']).first()
 		if customer and customer.paypal_transaction_id and customer.email:
 			if customer.payment_status == 'Completed':
 				# we've received IPN from paypal notifying that payment is complete for this session
