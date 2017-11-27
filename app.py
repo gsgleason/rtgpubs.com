@@ -87,7 +87,7 @@ def download():
 			return render_template('customer_not_found.html')
 
 @app.route('/pdt')
-def download():
+def pdt():
 	if 'id' not in session:
 		session['id'] = str(uuid.uuid4())
 	# first, see if session id from cookie is there and has been associated with a paypal transaction
@@ -134,7 +134,6 @@ def ipn():
 	customer.paypal_transaction_id = paypal_transaction_id
 	customer.payment_status = payment_status
 	customer.session_id = session_id
-
 	# send full post back to paypal
 	data = {}
 	data['cmd'] = '_notify-validate'
