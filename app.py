@@ -95,10 +95,9 @@ def download():
 		# if not local record, check with paypal
 		if not transaction:
 			pdt_data = pdt_lookup(paypal_transaction_id)
-			app.logger.info(pdt_data)
-			if pdt_data and pdt_data.get('payer_email') == email and paypal_transaction_id == pdt_data.get('txn_id'):
+			if pdt_data and urllib.parse.unquote(pdt_data.get('payer_email') == email and pdt_data.get('txn_id') == paypal_transaction_id:
 				transaction = Transaction()
-				transaction.email = pdt_data.get('payer_email')
+				transaction.email = urllib.parse.unquote(pdt_data.get('payer_email')
 				transaction.paypal_transaction_id = pdt_data.get('txn_id')
 				transaction.payment_status = pdt_data.get('payment_status')
 				transaction.session_id = session['id']
