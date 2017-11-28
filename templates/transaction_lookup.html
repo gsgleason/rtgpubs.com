@@ -8,8 +8,8 @@
 		<input name="email" type="email" class="form-control" onkeyup="disableIfBlank()" required autofocus>
 	</div>
 	<div class="form-group">
-		<label for="invoice_id">Invoice Number</label>
-		<input name="invoice_id" type="text" class="form-control" onkeyup="disableIfBlank()" required>
+		<label for="invoice">Invoice Number</label>
+		<input name="invoice" type="text" class="form-control" onkeyup="disableIfBlank()" required>
 	</div>
 	<div class="form-group">
 		<div class="g-recaptcha" data-sitekey="{{ site_key }}" data-callback="captchaDone"></div>
@@ -20,7 +20,7 @@
 <script>
 var captcha = false;
 function disableIfBlank() {
-	if(document.forms['transaction_lookup'].email.value == "" || document.forms['transaction_lookup'].invoice_id.value == "" || captcha == false) {
+	if(document.forms['transaction_lookup'].email.value == "" || document.forms['transaction_lookup'].invoice.value == "" || captcha == false) {
 		document.forms['transaction_lookup'].submit.disabled=true;
 	} else {
 		document.forms['transaction_lookup'].submit.disabled=false;
