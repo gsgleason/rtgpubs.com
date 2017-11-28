@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Markup, request, session, redirect, abort, url_for, flash
+from flask import Flask, render_template, Markup, request, session, redirect, abort, url_for, flash, send_from_directory
 from flask_sslify import SSLify
 import requests
 import uuid
@@ -79,9 +79,12 @@ def download():
 		return render_template('download.html')
 	if request.method == 'POST':
 		ebook_format = request.form.get('ebook_format')
-		return send_from_directory(config.book.directory, config.book.files[ebook_format], as_attachment=True)
-		transaction.downloads += 1
-		db.commit()
+		try:
+			return send_from_directory(config.book.directory, config.book.files[ebook_format], as_attachment=True)
+			transaction.downloads += 1
+			db.commit()
+		except:
+			abort(404)
 
 @app.route('/transaction_lookup', methods=['GET','POST'])
 def transaction_lookup():
