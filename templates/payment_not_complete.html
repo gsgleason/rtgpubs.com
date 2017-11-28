@@ -2,10 +2,37 @@
 {% block body %}
 <div class="container-fluid">
 <h3>Your payment is not complete.</h3>
-<p>For the following paypal transaction, the payment has not been completed.</p>
-<p>Email: {{ data.paypal_transaction_id }}<br />
-Transaction ID: {{ data.paypal_transaction_id }}<br />
-Payment status: {{ data.payment_status }}</p>
-<p>Please complete the payment and visit this page again.</p>
+<p>For the following paypal transaction, the payment has not been completed.  Please complete the payment and visit this page again.</p>
+
+<div class="row">
+	<div class="col">
+		Customer Email:
+	</div>
+	<div class="col">
+		{{ data.email }}
+	</div>
+</div>
+
+<div class="row">
+	<div class="col">
+		Paypal Transaction ID:
+	</div>
+	<div class="col">
+		{{ data.paypal_transaction_id }}
+	</div>
+</div>
+
+<div class="row">
+	<div class="col">
+		Payment Status:
+	</div>
+	<div class="col">
+		{{ data.payment_status }}
+	</div>
+</div>
+
+
+<p><a href="{{ url_for('transaction_lookup') }}" class="btn btn-primary btn-lg active" role="button" aria-pressed="true">Look up different transaction</a></p>
+
 </div>
 {% endblock body %}

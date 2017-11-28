@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Markup, request, session, redirect, abort
+from flask import Flask, render_template, Markup, request, session, redirect, abort, url_for
 from flask_sslify import SSLify
 import requests
 import uuid
@@ -64,12 +64,6 @@ def blog():
 def buy():
 	if 'id' not in session:
 		session['id'] = str(uuid.uuid4())
-	transaction = db.query(Transaction).filter(Transaction.session_id == session['id']).first()
-	if transaction is None:
-		transaction = Transaction(session_id=session['id'])
-	db.add(transaction)
-	db.commit()
-	db.close()
 	return render_template('buy.html')
 
 @app.route('/download', methods=['GET','POST'])
@@ -79,35 +73,43 @@ def download():
 	if request.method == 'GET':
 		# first, see if session id from cookie is there and has been associated with a paypal transaction
 		transaction = db.query(Transaction).filter(Transaction.session_id == session['id']).first()
-		if transaction and transaction.paypal_transaction_id and transaction.email:
+		if transaction and transaction.paypal_transaction_id:
 			if transaction.payment_status == 'Completed':
-				# we've received IPN from paypal notifying that payment is complete for this session
+				# we've verified payment from paypal this session
 				return render_template('download.html')
 			else:
 				# paypal transaction has been created but payment is not complete
-				return render_template('payment_not_complete.html')
+				return render_template('payment_not_complete.html', data=transaction)
 		# no session found - need to enter transaction id, email in order to download.
-		return render_template('enter_payment_details.html', data=transaction)
+		return redirect(url_for('transaction_lookup'), code=302)
+
+@app.route('/transaction_lookup', methods=['GET','POST'])
+def transaction_lookup():
+	if 'id' not in session:
+		session['id'] = str(uuid.uuid4())
+	if request.method == 'GET':
+		return render_template('enter_payment_details.html')
 	if request.method == 'POST':
 		email = request.form.get('email')
 		paypal_transaction_id = request.form.get('paypal_transaction_id')
 		transaction = db.query(Transaction).filter(Transaction.email == email, Transaction.paypal_transaction_id == paypal_transaction_id).first()
 		# if not local record, check with paypal
-		if not transaction:
-			pdt_data = pdt_lookup(paypal_transaction_id)
-			if pdt_data and urllib.parse.unquote(pdt_data.get('payer_email')) == email and pdt_data.get('txn_id') == paypal_transaction_id:
-				transaction = Transaction()
-				transaction.email = urllib.parse.unquote(pdt_data.get('payer_email'))
-				transaction.paypal_transaction_id = pdt_data.get('txn_id')
-				transaction.payment_status = pdt_data.get('payment_status')
-				transaction.session_id = session['id']
-				db.add(transaction)
-				db.commit()
+#		This section will look up the transaction on paypal.  This shouldn't ever be necessary.  I'll leave it commented for now.
+#		if not transaction:
+#			pdt_data = pdt_lookup(paypal_transaction_id)
+#			if pdt_data and urllib.parse.unquote(pdt_data.get('payer_email')) == email and pdt_data.get('txn_id') == paypal_transaction_id:
+#				transaction = Transaction()
+#				transaction.email = urllib.parse.unquote(pdt_data.get('payer_email'))
+#				transaction.paypal_transaction_id = pdt_data.get('txn_id')
+#				transaction.payment_status = pdt_data.get('payment_status')
+#				transaction.session_id = session['id']
+#				db.add(transaction)
+#				db.commit()
 		if transaction:
 			transaction.session_id = session['id']
 			db.commit()
 			db.close()
-			return redirect('/download', code=302)
+			return redirect(url_for('download'), code=302)
 		return render_template('transaction_not_found.html')
 
 @app.route('/pdt')

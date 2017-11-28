@@ -16,9 +16,10 @@ class Transaction(Base):
 	email = Column(String(length=255))
 	session_id = Column(String(length=255))
 	payment_status = Column(String(length=255))
+	downloads = Column(Integer, default=0)
 
 	def __repr__(self):
-		return "<Transaction(id={}, email='{}', paypal_transaction_id='{}', session_id='{}', payment_status={})>".format(self.id, self.email, self.paypal_transaction_id, self.session_id, self.payment_status)
+		return "<Transaction(id={}, email='{}', paypal_transaction_id='{}', session_id='{}', payment_status={}, downloads={})>".format(self.id, self.email, self.paypal_transaction_id, self.session_id, self.payment_status, self.downloads)
 
 def initDB():
 	Base.metadata.drop_all(engine)

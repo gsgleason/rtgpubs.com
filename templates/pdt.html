@@ -2,7 +2,7 @@
 {% block body %}
 <div class="container-fluid">
 
-<p>Your payment details are as follows:</p>
+<p>Thank you for your purchase.  Your payment details are as follows:</p>
 
 <div class="row">
 	<div class="col">
@@ -30,6 +30,10 @@
 			{{ data.payment_status }}
 	</div>
 </div>
+
+<p>If your payment is complete, you may proceed to the downloads section.</p>
+
+<p><a href="{{ url_for('download') }}" class="btn btn-primary btn-lg active" role="button" aria-pressed="true">Download</a></p>
 
 </div>
 {% endblock body %}
