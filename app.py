@@ -66,17 +66,13 @@ def blog():
 
 @app.route('/buy')
 def buy():
-	if 'id' not in session:
-		session['id'] = str(uuid.uuid4())
-	return render_template('buy.html')
+	return render_template('buy.html', invoice=str(uuid.uuid4()))
 
 @app.route('/download', methods=['GET','POST'])
 def download():
-	if 'id' not in session:
-		session['id'] = str(uuid.uuid4())
 	if request.method == 'GET':
 		# first, see if session id from cookie is there and has been associated with a completed paypal transaction
-		transaction = db.query(Transaction).filter(Transaction.session_id == session['id'], Transaction.payment_status == 'Completed').first()
+		transaction = db.query(Transaction).filter(Transaction.invoice == session['invoice'], Transaction.payment_status == 'Completed').first()
 		if transaction:
 			return render_template('download.html')
 		# no transaction for this session found - need to do lookup
@@ -86,8 +82,6 @@ def download():
 
 @app.route('/transaction_lookup', methods=['GET','POST'])
 def transaction_lookup():
-	if 'id' not in session:
-		session['id'] = str(uuid.uuid4())
 	if request.method == 'GET':
 		return render_template('transaction_lookup.html', site_key = config.reCaptcha.site_key)
 	if request.method == 'POST':
@@ -110,51 +104,32 @@ def transaction_lookup():
 			return render_template('transaction_lookup.html', site_key = config.reCaptcha.site_key)
 		# at this point, recaptcha was successful
 		email = request.form.get('email')
-		paypal_transaction_id = request.form.get('paypal_transaction_id')
-		transaction = db.query(Transaction).filter(Transaction.email == email, Transaction.paypal_transaction_id == paypal_transaction_id).first()
-		# if not local record, check with paypal
+		invoice = request.form.get('invoice')
+		transaction = db.query(Transaction).filter(Transaction.email == email, Transaction.invoice == invoice).first()
 		if not transaction:
-			pdt_data = pdt_lookup(paypal_transaction_id)
-			if pdt_data and urllib.parse.unquote(pdt_data.get('payer_email')) == email and pdt_data.get('txn_id') == paypal_transaction_id:
-				transaction = Transaction()
-				transaction.email = urllib.parse.unquote(pdt_data.get('payer_email'))
-				transaction.paypal_transaction_id = pdt_data.get('txn_id')
-				transaction.payment_status = pdt_data.get('payment_status')
-				transaction.session_id = session['id']
-				db.add(transaction)
-				db.commit()
-		if transaction:
-			transaction.session_id = session['id']
-			db.commit()
-			db.close()
-			return redirect(url_for('download'), code=302)
-		flash('Transaction not found', 'danger')
-		return render_template('transaction_lookup.html')
+			flash('Transaction not found', 'danger')
+		session['invoice'] = transaction.invoice
+		return redirect(url_for('download'), code=302)
 
 @app.route('/pdt')
 def pdt():
 	if 'tx' not in request.args:
 		return redirect(url_for('transaction_lookup'), code=302)
-	if 'id' not in session:
-		session['id'] = str(uuid.uuid4())
 	paypal_transaction_id = request.args.get('tx')
-	# first, look for transaction that already matches this paypal transaction ID.  This should only happen if the pdt page is visited twice.
-	transaction = db.query(Transaction).filter(Transaction.paypal_transaction_id == paypal_transaction_id).first()
-	# if that's not there, look for transaction that matches this browser session but has no transaction id
-	if not transaction:
-		transaction = db.query(Transaction).filter(Transaction.session_id == session['id'], Transaction.paypal_transaction_id == None).first()
-	# if there's no record without a transaction id for this browser session, make a new one
-	if not transaction:
-		transaction = Transaction(paypal_transaction_id=paypal_transaction_id, session_id=session['id'])
-		db.add(transaction)
 	pdt_data = pdt_lookup(paypal_transaction_id)
 	if pdt_data:
+		# first, look for transaction that already matches this paypal transaction ID.  This should only happen if the pdt page is visited twice.
+		transaction = db.query(Transaction).filter(Transaction.paypal_transaction_id == paypal_transaction_id).first()
+		# if there's no record for this transaction, make a new one
+		if not transaction:
+			transaction = Transaction()
+			db.add(transaction)
 		transaction.payment_status = pdt_data.get('payment_status')
 		transaction.paypal_transaction_id = pdt_data.get('txn_id')
 		transaction.email = urllib.parse.unquote(pdt_data.get('payer_email'))
-		transaction.session_id = session['id']
+		transaction.invoice = pdt_data.get('invoice')
+		session['invoice'] = transaction.invoice
 		db.commit()
-		db.close()
 	return render_template('pdt.html', data=transaction)
 
 @app.route('/ipn', methods=['POST'])
@@ -162,12 +137,9 @@ def ipn():
 	email = request.form.get('payer_email')
 	paypal_transaction_id = request.form.get('txn_id')
 	payment_status = request.form.get('payment_status')
-	session_id = request.form.get('custom')
+	invoice  = request.form.get('invoice')
 	# first we will search by transaction ID, which would be to update an existing transaction
 	transaction = db.query(Transaction).filter(Transaction.paypal_transaction_id == paypal_transaction_id).first()
-	# if that's not found, search by session_id, this will work for users who initiated the purchase through the site and have returned
-	if transaction is None:
-		transaction = db.query(Transaction).filter(Transaction.session_id == session_id).first()
 	# if that's not found, create new instance
 	if transaction is None:
 		transaction = Transaction()
@@ -175,7 +147,7 @@ def ipn():
 	transaction.email = email
 	transaction.paypal_transaction_id = paypal_transaction_id
 	transaction.payment_status = payment_status
-	transaction.session_id = session_id
+	transaction.invoice = invoice
 	# send full post back to paypal
 	data = {}
 	data['cmd'] = '_notify-validate'
@@ -185,8 +157,6 @@ def ipn():
 	r = requests.post(url, data=data)
 	if r.text == 'VERIFIED':
 		db.commit()
-		db.close()
 		return ""
 	else:
-		db.close()
 		abort(404)
