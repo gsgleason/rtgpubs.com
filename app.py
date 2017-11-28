@@ -106,7 +106,7 @@ def transaction_lookup():
 			return render_template('transaction_lookup.html', site_key = config.reCaptcha.site_key)
 		result = r.json()
 		if result.get('success') is not True:
-			flash(result.get('error-codes'), 'danger')
+			flash('reCAPTCHA erorr: {}'.format(result.get('error-codes')), 'danger')
 			return render_template('transaction_lookup.html', site_key = config.reCaptcha.site_key)
 		# at this point, recaptcha was successful
 		email = request.form.get('email')

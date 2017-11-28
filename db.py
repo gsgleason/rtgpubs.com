@@ -4,7 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 Base = declarative_base()
-engine = create_engine(db.uri, convert_unicode=True)
+engine = create_engine(db.uri, convert_unicode=True, pool_recycle=280)
 session = scoped_session(sessionmaker(expire_on_commit=False, autocommit=False, autoflush=False, bind=engine))
 
 class Transaction(Base):
