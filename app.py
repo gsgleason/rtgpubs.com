@@ -106,9 +106,10 @@ def transaction_lookup():
 		email = request.form.get('email')
 		invoice = request.form.get('invoice')
 		transaction = db.query(Transaction).filter(Transaction.email == email, Transaction.invoice == invoice).first()
-		if not transaction:
+		if transaction:
+			session['invoice'] = transaction.invoice
+		else:
 			flash('Transaction not found', 'danger')
-		session['invoice'] = transaction.invoice
 		return redirect(url_for('download'), code=302)
 
 @app.route('/pdt')
