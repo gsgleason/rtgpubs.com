@@ -79,12 +79,9 @@ def download():
 		return render_template('download.html')
 	if request.method == 'POST':
 		ebook_format = request.form.get('ebook_format')
-		try:
-			return send_from_directory(config.book.directory, config.book.files[ebook_format], as_attachment=True)
-			transaction.downloads += 1
-			db.commit()
-		except:
-			abort(404)
+		return send_from_directory(config.book.directory, config.book.files[ebook_format], as_attachment=True)
+		transaction.downloads += 1
+		db.commit()
 
 @app.route('/transaction_lookup', methods=['GET','POST'])
 def transaction_lookup():
