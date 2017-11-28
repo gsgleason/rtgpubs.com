@@ -11,6 +11,20 @@ app = Flask(__name__)
 app.config.from_object('config.flask')
 sslify = SSLify(app, permanent=True)
 
+def pdt_lookup(tx):
+	data = {}
+	data['cmd'] = '_notify-synch'
+	data['tx'] = tx
+	data['at'] = config.paypal.pdt_token
+	url = config.paypal.api_uri
+	r = requests.post(url, data=data)
+	if r.status_code == 200:
+		response_list = shlex.split(r.text)
+		if response_list[0] == 'SUCCESS':
+			response_data = dict(token.split('=') for token in response_list[1:])
+			return response_data
+	return None
+
 @app.route('/')
 def index():
 	params = {'key':config.blogger.api_key}
@@ -78,13 +92,21 @@ def download():
 		email = request.form.get('email')
 		paypal_transaction_id = request.form.get('paypal_transaction_id')
 		transaction = db.query(Transaction).filter(Transaction.email == email, Transaction.paypal_transaction_id == paypal_transaction_id).first()
+		# if not local record, check with paypal
+		if not transaction:
+			pdt_data = pdt_lookup(paypal_transaction_id)
+			if pdt_data and pdt_data.get('payer_email') == email:
+				transaction = Transaction()
+				transaction.email = pdt_data.get('payer_email')
+				transaction.paypal_transaction_id = pdt_data.get('txn_id')
+				transaction.payment_status = pdt_data.get('payment_status')
+				db.add(transaction)
 		if transaction:
 			transaction.session_id = session['id']
 			db.commit()
 			db.close()
 			return redirect('/download', code=302)
-		else:
-			return render_template('transaction_not_found.html')
+		return render_template('transaction_not_found.html')
 
 @app.route('/pdt')
 def pdt():
@@ -102,21 +124,14 @@ def pdt():
 	if not transaction:
 		transaction = Transaction(paypal_transaction_id=paypal_transaction_id, session_id=session['id'])
 		db.add(transaction)
-	data = {}
-	data['cmd'] = '_notify-synch'
-	data['tx'] = paypal_transaction_id
-	data['at'] = config.paypal.pdt_token
-	url = config.paypal.api_uri
-	r = requests.post(url, data=data)
-	if r.status_code == 200:
-		response_list = shlex.split(r.text)
-		if response_list[0] == 'SUCCESS':
-			response_data = dict(token.split('=') for token in response_list[1:])
-			transaction.payment_status = response_data.get('payment_status')
-			transaction.paypal_transaction_id = response_data.get('txn_id')
-			transaction.email = urllib.parse.unquote(response_data.get('payer_email'))
-			db.commit()
-			db.close()
+	pdt_data = pdt_lookup(paypal_transaction_id)
+	if pdt_data:
+		transaction.payment_status = pdt_data.get('payment_status')
+		transaction.paypal_transaction_id = pdt_data.get('txn_id')
+		transaction.email = urllib.parse.unquote(pdt_data.get('payer_email'))
+		transaction.session_id = session['id']
+		db.commit()
+		db.close()
 	return render_template('pdt.html', data=transaction)
 
 @app.route('/ipn', methods=['POST'])
