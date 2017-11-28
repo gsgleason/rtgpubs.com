@@ -1,12 +1,11 @@
 from config import db
 from sqlalchemy import create_engine, Column, String, Integer, Boolean
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 
 Base = declarative_base()
-engine = create_engine(db.uri, convert_unicode=True, pool_timeout=20, pool_recycle=299)
-Session = sessionmaker(bind=engine, expire_on_commit=False)
-session = Session()
+engine = create_engine(db.uri, convert_unicode=True)
+session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine, pool_timeout=20, pool_recycle=299))
 
 class Transaction(Base):
 	__tablename__ = 'transactions'

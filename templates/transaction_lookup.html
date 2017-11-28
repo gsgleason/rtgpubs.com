@@ -2,16 +2,35 @@
 {% block body %}
 <div class="container">
 <p>If you have already completed your payment, please enter the Paypal transaction details in order to access your download.</p>
-<form method="post">
+<form method="post" id="transaction_lookup">
 	<div class="form-group">
 		<label for="email">Email address</label>
-		<input name="email" type="email" class="form-control" id="email" required autofocus>
+		<input name="email" type="email" class="form-control" id="email" onkeyup="disableIfBlank()" required autofocus>
 	</div>
 	<div class="form-group">
 		<label for="paypal_transaction_id">Paypal Transaction ID</label>
-		<input name="paypal_transaction_id" type="text" class="form-control" id="paypal_transaction_id" required>
+		<input name="paypal_transaction_id" type="text" class="form-control" id="paypal_transaction_id" onkeyup="disableIfBlank()" required>
 	</div>
-	<button type="submit" class="btn btn-primary">Submit</button>
+	<div class="form-group">
+		<div class="g-recaptcha" data-sitekey="{{ site_key }}" data-callback="captchaDone"></div>
+	</div>
+	<button type="submit" name="submit" class="btn btn-primary">Submit</button>
 </form>
 </div>
+<script>
+var captcha = false;
+function disableIfBlank() {
+	if(document.forms['transaction_lookup'].email.value == "" || document.forms['transaction_lookup'].paypal_transaction_id.value == "" || captcha == false) {
+		document.forms['transaction_lookup'].submit.disabled=true;
+	} else {
+		document.forms['transaction_lookup'].submit.disabled=false;
+	}
+}
+disableIfBlank();
+function captchaDone(response) {
+	captcha = true;
+	disableIfBlank();
+}
+</script>
+
 {% endblock body %}

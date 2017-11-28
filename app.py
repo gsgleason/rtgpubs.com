@@ -25,6 +25,10 @@ def pdt_lookup(tx):
 			return response_data
 	return None
 
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+	db.remove()
+
 @app.route('/')
 def index():
 	params = {'key':config.blogger.api_key}
@@ -85,23 +89,40 @@ def transaction_lookup():
 	if 'id' not in session:
 		session['id'] = str(uuid.uuid4())
 	if request.method == 'GET':
-		return render_template('transaction_lookup.html')
+		return render_template('transaction_lookup.html', site_key = config.reCaptcha.site_key)
 	if request.method == 'POST':
+		#first, do recaptcha
+		g_recaptcha_response =  request.form.get('g-recaptcha-response')
+		if request.headers.getlist("X-Forwarded-For"):
+			remote_ip = request.headers.getlist("X-Forwarded-For")[0]
+		else:
+			remote_ip = request.remote_addr
+		secret_key = config.reCaptcha.secret_key
+		url = config.reCaptcha.url
+		data = {'secret':secret_key,'response':g_recaptcha_response,'remoteip':remote_ip}
+		r = requests.post(url,data=data)
+		if r.status_code != 200:
+			flash('reCAPTCHA service failure','danger')
+			return render_template('transaction_lookup.html', site_key = config.reCaptcha.site_key)
+		result = r.json()
+		if result.get('success') is not True:
+			flash(result.get('error_codes'), 'danger')
+			return render_template('transaction_lookup.html', site_key = config.reCaptcha.site_key)
+		# at this point, recaptcha was successful
 		email = request.form.get('email')
 		paypal_transaction_id = request.form.get('paypal_transaction_id')
 		transaction = db.query(Transaction).filter(Transaction.email == email, Transaction.paypal_transaction_id == paypal_transaction_id).first()
 		# if not local record, check with paypal
-#		This section will look up the transaction on paypal.  This shouldn't ever be necessary.  I'll leave it commented for now.
-#		if not transaction:
-#			pdt_data = pdt_lookup(paypal_transaction_id)
-#			if pdt_data and urllib.parse.unquote(pdt_data.get('payer_email')) == email and pdt_data.get('txn_id') == paypal_transaction_id:
-#				transaction = Transaction()
-#				transaction.email = urllib.parse.unquote(pdt_data.get('payer_email'))
-#				transaction.paypal_transaction_id = pdt_data.get('txn_id')
-#				transaction.payment_status = pdt_data.get('payment_status')
-#				transaction.session_id = session['id']
-#				db.add(transaction)
-#				db.commit()
+		if not transaction:
+			pdt_data = pdt_lookup(paypal_transaction_id)
+			if pdt_data and urllib.parse.unquote(pdt_data.get('payer_email')) == email and pdt_data.get('txn_id') == paypal_transaction_id:
+				transaction = Transaction()
+				transaction.email = urllib.parse.unquote(pdt_data.get('payer_email'))
+				transaction.paypal_transaction_id = pdt_data.get('txn_id')
+				transaction.payment_status = pdt_data.get('payment_status')
+				transaction.session_id = session['id']
+				db.add(transaction)
+				db.commit()
 		if transaction:
 			transaction.session_id = session['id']
 			db.commit()
@@ -113,7 +134,7 @@ def transaction_lookup():
 @app.route('/pdt')
 def pdt():
 	if 'tx' not in request.args:
-		abort(400)
+		return redirect(url_for('transaction_lookup'), code=302)
 	if 'id' not in session:
 		session['id'] = str(uuid.uuid4())
 	paypal_transaction_id = request.args.get('tx')
