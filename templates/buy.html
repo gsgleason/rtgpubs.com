@@ -1,31 +1,6 @@
 {% extends 'base.html' %}
 {% block body %}
 <div class="container-fluid">
-{#
-<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
-<input type="hidden" name="custom" value="{{ session.id }}">
-<input type="hidden" name="cmd" value="_s-xclick">
-<input type="hidden" name="hosted_button_id" value="ASD97E5N5RKAE">
-<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_buynow_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
-<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
-</form>
-#}
-<div class="row">
-<div class="col">
-<p>On Giving: The Tithe Then... and Now?</p>
-<p>By Rick Gleason</p>
-<p>&copy; 2017</p>
-<form action="https://www.sandbox.paypal.com/cgi-bin/webscr" method="post" target="_top">
-<input type="hidden" name="custom" value="{{ session.id }}">
-<input type="hidden" name="cmd" value="_s-xclick">
-<input type="hidden" name="hosted_button_id" value="2WAFZ4JFECVH2">
-<input type="image" src="https://www.sandbox.paypal.com/en_US/i/btn/btn_buynowCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
-<img alt="" border="0" src="https://www.sandbox.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1">
-</form>
-</div>
-<div class="col">
-<img src="/static/On_Giving.jpg" alt="On Giving Cover Art">
-</div>
-
+{% include 'buy_button.html' %}
 </div>
 {% endblock body %}
