@@ -106,10 +106,10 @@ def transaction_lookup():
 		email = request.form.get('email')
 		invoice = request.form.get('invoice')
 		transaction = db.query(Transaction).filter(Transaction.email == email, Transaction.invoice == invoice).first()
-		if transaction:
-			session['invoice'] = transaction.invoice
-		else:
+		if not transaction:
 			flash('Transaction not found', 'danger')
+			return render_template('transaction_lookup.html', site_key = config.reCaptcha.site_key)
+		session['invoice'] = transaction.invoice
 		return redirect(url_for('download'), code=302)
 
 @app.route('/pdt')
