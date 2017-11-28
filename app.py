@@ -81,6 +81,8 @@ def download():
 		ebook_format = request.form.get('ebook_format')
 		try:
 			return send_from_directory(config.book.directory, config.book.files[ebook_format], as_attachment=True)
+			transaction.downloads += 1
+			db.commit()
 		except:
 			abort(404)
 
