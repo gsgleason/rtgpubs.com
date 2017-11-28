@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 
 Base = declarative_base()
 engine = create_engine(db.uri, convert_unicode=True)
-session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
+session = scoped_session(sessionmaker(expire_on_commit=False, autocommit=False, autoflush=False, bind=engine))
 
 class Transaction(Base):
 	__tablename__ = 'transactions'
