@@ -109,8 +109,8 @@ def transaction_lookup():
 			flash('reCAPTCHA error: {}'.format(', '.join(result.get('error-codes'))), 'danger')
 			return render_template('transaction_lookup.html', site_key = config.reCaptcha.site_key)
 		# at this point, recaptcha was successful
-		email = request.form.get('email')
-		invoice = request.form.get('invoice')
+		email = request.form.get('email').strip()
+		invoice = request.form.get('invoice').strip()
 		transaction = db.query(Transaction).filter(Transaction.email == email, Transaction.invoice == invoice).first()
 		if not transaction:
 			flash('Transaction not found', 'danger')
