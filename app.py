@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Markup, request, session, redirect, abort, url_for
+from flask import Flask, render_template, Markup, request, session, redirect, abort, url_for, flash
 from flask_sslify import SSLify
 import requests
 import uuid
@@ -71,24 +71,21 @@ def download():
 	if 'id' not in session:
 		session['id'] = str(uuid.uuid4())
 	if request.method == 'GET':
-		# first, see if session id from cookie is there and has been associated with a paypal transaction
-		transaction = db.query(Transaction).filter(Transaction.session_id == session['id']).first()
-		if transaction and transaction.paypal_transaction_id:
-			if transaction.payment_status == 'Completed':
-				# we've verified payment from paypal this session
-				return render_template('download.html')
-			else:
-				# paypal transaction has been created but payment is not complete
-				return render_template('payment_not_complete.html', data=transaction)
-		# no session found - need to enter transaction id, email in order to download.
+		# first, see if session id from cookie is there and has been associated with a completed paypal transaction
+		transaction = db.query(Transaction).filter(Transaction.session_id == session['id'], Transaction.payment_status == 'Completed').first()
+		if transaction:
+			return render_template('download.html')
+		# no transaction for this session found - need to do lookup
 		return redirect(url_for('transaction_lookup'), code=302)
+	if request.method == 'POST':
+		return ''
 
 @app.route('/transaction_lookup', methods=['GET','POST'])
 def transaction_lookup():
 	if 'id' not in session:
 		session['id'] = str(uuid.uuid4())
 	if request.method == 'GET':
-		return render_template('enter_payment_details.html')
+		return render_template('transaction_lookup.html')
 	if request.method == 'POST':
 		email = request.form.get('email')
 		paypal_transaction_id = request.form.get('paypal_transaction_id')
@@ -110,7 +107,8 @@ def transaction_lookup():
 			db.commit()
 			db.close()
 			return redirect(url_for('download'), code=302)
-		return render_template('transaction_not_found.html')
+		flash('Transaction not found', 'danger')
+		return render_template('transaction_lookup.html')
 
 @app.route('/pdt')
 def pdt():
