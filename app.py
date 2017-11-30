@@ -66,7 +66,7 @@ def blog():
 
 @app.route('/buy')
 def buy():
-	return render_template('buy.html', button_form = Markup(config.paypal.button_form), invoice=str(uuid.uuid4()))
+	return render_template('buy.html', button_form = Markup(config.paypal.button_form.format(str(uuid.uuid4()))))
 
 @app.route('/download', methods=['GET','POST'])
 def download():
