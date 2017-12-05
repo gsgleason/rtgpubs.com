@@ -70,13 +70,17 @@ def buy():
 
 @app.route('/download', methods=['GET','POST'])
 def download():
-	transaction = db.query(Transaction).filter(Transaction.invoice == session['invoice'], Transaction.payment_status == 'Completed').first()
+	# first, see if session id from cookie is there and has been associated with a completed paypal transaction
+	if 'invoice' in session:
+		transaction = db.query(Transaction).filter(Transaction.invoice == session['invoice'], Transaction.payment_status == 'Completed').first()
+	else:
+		transaction = None
 	if not transaction:
 		# no transaction for this session found - need to do lookup
 		return redirect(url_for('transaction_lookup'), code=302)
+	# if we get here, there is a completed transaction for this session
 	if request.method == 'GET':
-		# first, see if session id from cookie is there and has been associated with a completed paypal transaction
-		return render_template('download.html')
+		return render_template('download.html', data=config.book.files)
 	if request.method == 'POST':
 		ebook_format = request.form.get('ebook_format')
 		try:
